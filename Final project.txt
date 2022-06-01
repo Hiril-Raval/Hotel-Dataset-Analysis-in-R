@@ -1,0 +1,502 @@
+# IST687, Final Project
+# 
+# Student name: Boxuan Chen, Hiril Raval, Jiacheng Li, Sujay Suhas Bhat
+# Date due: 11:59 PM Thursday, May 13, 2021
+#
+# Get started
+dev.off() # Clear the graph window
+cat('\014')   # Clear the console
+rm(list=ls()) # Clear user objects from the environment
+# Set working directory  
+setwd("C:/Users/HIRIL/Desktop")
+
+install.packages("tidyverse")
+library(tidyverse)
+install.packages("readxl")
+library(readxl)
+install.packages("dplyr")
+library(dplyr)
+install.packages("ggplot2")
+library(ggplot2)
+install.packages("RCurl")
+library(RCurl)
+install.packages("arules")
+library(arules)
+install.packages("arulesViz")
+library(arulesViz)
+install.packages("jsonlite")
+library(jsonlite)
+install.packages("stringr")
+library(stringr)
+install.packages("maps")
+library(maps)
+install.packages("ggmap")
+library(ggmap)
+install.packages("mapproj")
+library(mapproj)
+install.packages("countrycode")
+library(countrycode)
+install.packages("rworldmap")
+library(rworldmap)
+install.packages("imputeTS")
+library(imputeTS)
+install.packages("lubridate")
+library(lubridate)
+install.packages("MASS")
+library(MASS)
+install.packages("caret")
+library(caret)
+install.packages("kernlab")
+library(kernlab)
+install.packages("tidyr")
+library(tidyr)
+install.packages("rmarkdown")
+library(rmarkdown)
+# Read data set and store in a dataframe
+resort <- read_excel("H1-Resort.xlsx")
+city <- read_excel("H2-City.xlsx")
+
+###DATA PREPARATION######
+###########For City
+#Finding datatype of each variable with same values
+str(city) 
+#Columns is_canceled and is_repeated_guest have same unique values i.e. 0 and 1.
+#Converting these to factors data type
+city$IsCanceled <- as.factor(city$IsCanceled)
+
+###########For Resort
+#Finding datatype of each variable with same values
+str(resort)
+#Columns is_canceled and is_repeated_guest have same unique values i.e. 0 and 1.
+#Converting these to factors data type
+resort$IsCanceled <- as.factor(resort$IsCanceled)
+
+#Checking the missing values in each column
+#Below are the missing values in each column:
+colSums(is.na(city))
+colSums(is.na(resort))
+
+#Merging two datasets city and resort into hotel dataset
+hotel<-rbind(city,resort)
+#Summary statistics of each variable
+summary(hotel)
+
+
+# Examples of additional attributes that should be added include:
+# Visitor Type - This is a categorical variable you calculate to indicate the type of guest(s). 
+# Examples should be "Single", "Couple" or "Family". 
+city$numOfGuest <- as.numeric(city$Adults)+as.numeric(city$Children)+as.numeric(city$Babies)
+resort$numOfGuest <- as.numeric(resort$Adults)+as.numeric(resort$Children)+as.numeric(resort$Babies)
+# Create a numeric variable in each dataframe that shows the number of guest in each booking record
+
+city$numOfGuest[city$numOfGuest == 1] <- 1  
+city$numOfGuest[city$numOfGuest == 2] <- 2
+city$numOfGuest[city$numOfGuest >2 ] <- 3  
+city$numOfGuest <- factor(city$numOfGuest, levels=c(1,2,3), labels=c("Single","Couple", "Family"))
+# Use factor() function to change the value of numOfGuest from numbers to types.
+
+city$typeOfGuest <- city$numOfGuest
+# Copy the type into a new variable.
+city$typeOfGuest <- as.factor(city$typeOfGuest)
+# Create a new categorical variable that shows the type of guest in each booking record. Types include "Single", "Couple", and "Family"
+
+resort$numOfGuest[resort$numOfGuest == 1] <- 1
+resort$numOfGuest[resort$numOfGuest == 2] <- 2
+resort$numOfGuest[resort$numOfGuest >2 ] <- 3  
+resort$numOfGuest <- factor(resort$numOfGuest, levels=c(1,2,3), labels=c("Single","Couple", "Family"))
+# Use factor() function to change the value of numOfGuest from numbers to types
+resort$typeOfGuest <- resort$numOfGuest
+# Copy the type into a new variable
+resort$typeOfGuest <- as.factor(resort$typeOfGuest)
+# Create a new categorical variable that shows the type of guest in each booking record. Types include "Single", "Couple", and "Family"
+
+city$numOfGuest <- as.numeric(city$Adults)+as.numeric(city$Children)+as.numeric(city$Babies)
+resort$numOfGuest <- as.numeric(resort$Adults)+as.numeric(resort$Children)+as.numeric(resort$Babies)
+# Recalculate the numbers
+
+# Season - This should be categorical to indicate the time of year. 
+# Examples should be "Spring", "Summer", "Fall" and "Winter".
+# Average Revenue per Stay- This should be a numeric value that multiples the length of stay times the ADR.
+city$Season<- quarter(city$ReservationStatusDate)
+# Get the quarter of each booking record's date
+city$Season[city$Season == 1] <- 1  
+city$Season[city$Season == 2] <- 2
+city$Season[city$Season == 3 ] <- 3  
+city$Season[city$Season == 4 ] <- 4
+city$Season <- factor(city$Season, levels=c(1,2,3,4), labels=c("Spring","Summer", "Fall", "Winter"))
+city$Season <- as.factor(city$Season)
+View(city)
+
+resort$Season<- quarter(resort$ReservationStatusDate)
+# Get the quarter of each booking record's date
+resort$Season[resort$Season == 1] <- 1  
+resort$Season[resort$Season == 2] <- 2
+resort$Season[resort$Season == 3 ] <- 3  
+resort$Season[resort$Season == 4 ] <- 4
+resort$Season <- factor(resort$Season, levels=c(1,2,3,4), labels=c("Spring","Summer", "Fall", "Winter"))
+resort$Season <- as.factor(resort$Season)
+View(resort)
+
+# Average Revenue per Stay- This should be a numeric value that multiples the length of stay times the ADR
+city$averageRevenuePerStay <- (as.numeric(city$StaysInWeekendNights) + as.numeric(city$StaysInWeekNights)) * city$ADR
+resort$averageRevenuePerStay <- (as.numeric(resort$StaysInWeekendNights) + as.numeric(resort$StaysInWeekNights)) * resort$ADR
+View(city)
+View(resort)
+
+# 2. For exploratory work:
+# a. Histograms and boxplots of numeric variables are typically useful.
+summary(city)
+summary(resort)
+which.max(city$ADR)
+city[which.max(city$ADR),]
+which.max(resort$ADR)
+resort[which.max(resort$ADR),]
+
+city <- city[-which.max(city$ADR),]
+ggplot(city, aes(x=ADR)) + geom_histogram(bins=10)
+ggplot(resort, aes(x=ADR)) + geom_histogram(bins=10)
+ggplot(city, aes(x=averageRevenuePerStay)) + geom_histogram(bins=100)
+ggplot(resort, aes(x=averageRevenuePerStay)) + geom_histogram(bins=100)
+ggplot(city, aes(x=factor(0), ADR)) + geom_boxplot
+
+table(city$Babies)
+city <- city[-(city$Babies=10),]
+ggplot(resort, aes(x=factor(0), ADR)) + geom_boxplot()
+ggplot(city, aes(x=factor(0), averageRevenuePerStay)) + geom_boxplot()
+ggplot(resort, aes(x=factor(0), averageRevenuePerStay)) + geom_boxplot()
+# Generating histograms based on ADR and averageRevenuePerStay
+
+#adding boxplots of numeric variables and observing outliers
+par(mar=c(1,1,1,1))
+boxplot(hotel$LeadTime,main = "Boxplot : # Lead Time.")
+boxplot(hotel$StaysInWeekendNights,main = "Boxplot : Weekend Nights")
+boxplot(hotel$StaysInWeekNights,main = "Boxplot : Weekday Nights")
+boxplot(hotel$Adults,main = "Boxplot : # of Adults")
+boxplot(hotel$Children,main = "Boxplot : # of Children")
+boxplot(hotel$Babies,main = "Boxplot : # of Babies")
+boxplot(hotel$PreviousCancellations ,main = "Boxplot : # of Previous Cancellations")
+boxplot(hotel$PreviousBookingsNotCanceled,main = "Boxplot : # of Previous Non-Cancellations")
+boxplot(hotel$BookingChangeS,main = "Boxplot : # of Booking Changes")
+boxplot(hotel$DaysInWaitingList,main = "Boxplot : Days in Waiting List")
+boxplot(hotel$ADR,main = "Boxplot : Avg. Daily Price")
+boxplot(hotel$RequiredCarParkingSpaces,main = "Boxplot : # of Car Parking Spaces Req.")
+boxplot(hotel$TotalOfSpecialRequests,main = "Boxplot : # of Spl. Requests")
+
+#Length stayed
+#Combining weekends and weekdays columns
+weekend<-hotel$StaysInWeekendNights
+week<-hotel$StaysInWeekNights
+total<-weekend+week
+total[total==0]<-NA
+summary(total)
+boxplot(total,col="chartreuse3",ylab="Nights Stayed")
+
+#Number of Guests
+'+' <- function(e1, e2) {
+  if (is.character(e1) | is.character(e2)) {
+    paste0(e1, e2)
+  } else {
+    base::`+`(e1, e2)
+  }
+}
+adults<-hotel$Adults
+children<-hotel$Children
+babies<-hotel$Babies
+people<-adults+children+babies
+people[people==0]<-NA
+summary(people)
+peoplef<-factor(people)
+plot(peoplef, col="chartreuse3",ylab="Count",xlab="Number of Guests")
+
+#Meal preferred
+Meal.summary <- hotel %>%
+  filter(IsCanceled == 0) %>% 
+  group_by(Meal) %>%
+  summarize(Meal_count = n()) %>% 
+  arrange(-Meal_count) %>%  
+  transmute(Meal.Type=case_when(Meal == 'BB' ~ 'Bed & Breakfast',
+                                Meal=='HB' ~ 'Half board (breakfast and one other meal - usually dinner)',
+                                Meal=='FB' ~ 'Full board (breakfast, lunch and dinner)',
+                                Meal=='SC'~ 'No meal package',      
+                                TRUE ~ 'Not Selected'),
+            Meal_count)
+
+paged_table(Meal.summary)
+
+#Room preferred
+room.summary <- hotel %>%
+  filter(IsCanceled == 0) %>% 
+  group_by(ReservedRoomType) %>%
+  summarize(room_count = n()) %>% 
+  arrange(-room_count)
+
+paged_table(room.summary)
+
+head(hotel)
+
+# b. Producing tables of categorical response variables (e.g., Country) if often helpful.
+table(city$Agent)
+table(resort$Agent)
+table(city$AssignedRoomType)
+table(resort$AssignedRoomType)
+table(city$Company)
+table(resort$Company)
+table(city$Country)
+table(resort$Country)
+table(city$CustomerType)
+table(resort$CustomerType)
+table(city$DepositType)
+table(resort$DepositType)
+table(city$DistributionChannel)
+table(resort$DistributionChannel)
+table(city$IsCanceled)
+table(resort$IsCanceled)
+table(city$IsRepeatedGuest)
+table(resort$IsRepeatedGuest)
+table(city$MarketSegment)
+table(resort$MarketSegment)
+table(city$Meal)
+table(resort$Meal)
+table(city$ReservationStatus)
+table(resort$ReservationStatus)
+table(city$ReservedRoomType)
+table(resort$ReservedRoomType)
+
+
+# c. Boxplots of ADR, using each of these grouping variables is often useful (e.g., grouping Customer Type, Room Type Meal Plan and then generating boxplots or histograms within each grouping).
+cityBoxplot1 <- ggplot(city, aes(x = CustomerType, y = ADR))
+# Group customer type and ADR
+cityBoxplot1 <- cityBoxplot1 + geom_boxplot()
+cityBoxplot1 <- cityBoxplot1 + geom_boxplot(aes(color = CustomerType)) + 
+  scale_color_manual(values = c("#00AFBB", "#E7B800", "#FC4E07", "#CA52DB"))
+cityBoxplot1 <- cityBoxplot1 + geom_boxplot(aes(fill = CustomerType)) +
+  scale_fill_manual(values = c("#00AFBB", "#E7B800", "#FC4E07", "#CA52DB"))
+cityBoxplot1
+#From the graph we can see that there are many outliers, and 
+cityBoxplot2 <- ggplot(city, aes(x = ReservedRoomType, y = ADR))
+# Group room type and ADR
+cityBoxplot2 <- cityBoxplot2 + geom_boxplot()
+cityBoxplot2 <- cityBoxplot2 + geom_boxplot(aes(color = ReservedRoomType)) + 
+  scale_color_manual(values = c("#00AFBB", "#E7B800", "#FC4E07", "#CA52DB","#54F0F3","#E5BF3F", "#E83B5D","#5E63F9"))
+cityBoxplot2 <- cityBoxplot2 + geom_boxplot(aes(fill = ReservedRoomType)) +
+  scale_fill_manual(values = c("#00AFBB", "#E7B800", "#FC4E07", "#CA52DB","#54F0F3","#E5BF3F", "#E83B5D","#5E63F9"))
+cityBoxplot2
+
+cityBoxplot3 <- ggplot(city, aes(x = Meal, y = ADR))
+# Group meal plan and ADR
+cityBoxplot3 <- cityBoxplot3 + geom_boxplot()
+cityBoxplot3 <- cityBoxplot3 + geom_boxplot(aes(color = Meal)) + 
+  scale_color_manual(values = c("#00AFBB", "#E7B800", "#FC4E07", "#CA52DB"))
+cityBoxplot3 <- cityBoxplot3 + geom_boxplot(aes(fill = Meal)) +
+  scale_fill_manual(values = c("#00AFBB", "#E7B800", "#FC4E07", "#CA52DB"))
+cityBoxplot3
+
+resortBoxplot1 <- ggplot(resort, aes(x = CustomerType, y = ADR))
+resortBoxplot1 <- resortBoxplot1 + geom_boxplot()
+resortBoxplot1 <- resortBoxplot1 + geom_boxplot(aes(color = CustomerType)) + 
+  scale_color_manual(values = c("#00AFBB", "#E7B800", "#FC4E07", "#CA52DB"))
+resortBoxplot1 <- resortBoxplot1 + geom_boxplot(aes(fill = CustomerType)) +
+  scale_fill_manual(values = c("#00AFBB", "#E7B800", "#FC4E07", "#CA52DB"))
+resortBoxplot1
+
+resortBoxplot2 <- ggplot(resort, aes(x = ReservedRoomType, y = ADR))
+resortBoxplot2 <- resortBoxplot2 + geom_boxplot()
+resortBoxplot2 <- resortBoxplot2 + geom_boxplot(aes(color = ReservedRoomType)) + 
+  scale_color_manual(values = c("#00AFBB", "#E7B800", "#FC4E07", "#CA52DB","#54F0F3","#E5BF3F", "#E83B5D","#5E63F9","#FA8229","#FF00EC"))
+resortBoxplot2 <- resortBoxplot2 + geom_boxplot(aes(fill = ReservedRoomType)) +
+  scale_fill_manual(values = c("#00AFBB", "#E7B800", "#FC4E07", "#CA52DB","#54F0F3","#E5BF3F", "#E83B5D","#5E63F9","#FA8229","#FF00EC"))
+resortBoxplot2
+
+resortBoxplot3 <- ggplot(resort, aes(x = Meal, y = ADR))
+resortBoxplot3 <- resortBoxplot3 + geom_boxplot()
+resortBoxplot3 <- resortBoxplot3 + geom_boxplot(aes(color = Meal)) + 
+  scale_color_manual(values = c("#00AFBB", "#E7B800", "#FC4E07", "#CA52DB","#54F0F3"))
+resortBoxplot3 <- resortBoxplot3 + geom_boxplot(aes(fill = Meal)) +
+  scale_fill_manual(values = c("#00AFBB", "#E7B800", "#FC4E07", "#CA52DB","#54F0F3"))
+resortBoxplot3
+
+
+# d. Barplots of ADR across different categories is often useful.
+# Generate barplots of ADR across different categories
+ggplot(city, aes(x=AssignedRoomType, y=ADR)) + geom_bar(stat= "identity")
+ggplot(city, aes(x=CustomerType, y=ADR)) + geom_bar(stat= "identity")
+ggplot(city, aes(x=DepositType, y=ADR)) + geom_bar(stat= "identity")
+ggplot(city, aes(x=DistributionChannel, y=ADR)) + geom_bar(stat= "identity")
+ggplot(city, aes(x=IsCanceled, y=ADR)) + geom_bar(stat= "identity")
+ggplot(city, aes(x=IsRepeatedGuest, y=ADR)) + geom_bar(stat= "identity")
+ggplot(city, aes(x=MarketSegment, y=ADR)) + geom_bar(stat= "identity")
+ggplot(city, aes(x=Meal, y=ADR)) + geom_bar(stat= "identity")
+ggplot(city, aes(x=ReservationStatus, y=ADR)) + geom_bar(stat= "identity")
+ggplot(city, aes(x=ReservedRoomType, y=ADR)) + geom_bar(stat= "identity")
+
+ggplot(city, aes(x=typeOfGuest, y=ADR)) + geom_bar(stat= "identity")
+ggplot(city, aes(x=Season, y=ADR)) + geom_bar(stat= "identity")
+
+
+ggplot(resort, aes(x=AssignedRoomType, y=ADR)) + geom_bar(stat= "identity")
+ggplot(resort, aes(x=CustomerType, y=ADR)) + geom_bar(stat= "identity")
+ggplot(resort, aes(x=DepositType, y=ADR)) + geom_bar(stat= "identity")
+ggplot(resort, aes(x=DistributionChannel, y=ADR)) + geom_bar(stat= "identity")
+ggplot(resort, aes(x=IsCanceled, y=ADR)) + geom_bar(stat= "identity")
+ggplot(resort, aes(x=IsRepeatedGuest, y=ADR)) + geom_bar(stat= "identity")
+ggplot(resort, aes(x=MarketSegment, y=ADR)) + geom_bar(stat= "identity")
+ggplot(resort, aes(x=Meal, y=ADR)) + geom_bar(stat= "identity")
+ggplot(resort, aes(x=ReservationStatus, y=ADR)) + geom_bar(stat= "identity")
+ggplot(resort, aes(x=ReservedRoomType, y=ADR)) + geom_bar(stat= "identity")
+
+ggplot(resort, aes(x=typeOfGuest, y=ADR)) + geom_bar(stat= "identity")
+ggplot(resort, aes(x=Season, y=ADR)) + geom_bar(stat= "identity")
+
+
+# 3. Since there is country data, you could make a map of the countries where your visitors come from.
+table(city$Country)
+table(resort$Country)
+world <- map_data("world")
+# Import the world map data from ggmap package
+world$country <- tolower(world$region)
+# Convert all letters to lowercase because that's how ggmap works
+View(world)
+countrycode(city$Country, 'iso3c', 'country.name')
+# Using countrycode function to convert country code to full country names:
+resort$countryName <- countrycode(resort$Country, 'iso3c', 'country.name')
+resort$countryName <- tolower(resort$countryName)
+city$countryName <- countrycode(city$Country, 'iso3c', 'country.name')
+city$countryName <- tolower(city$countryName)
+countryCount <- data.frame(table(unlist(resort$countryName)))
+# Extract the country names and their corresponding frequency and convert them into a data frame
+countryCount$country <- countryCount$Var1
+View(countryCount)
+# Draw the map using joinCountryData2Map from rworldmap package:
+map <- joinCountryData2Map(
+  countryCount,
+  joinCode = "NAME",
+  nameJoinColumn = "country",
+  verbose = TRUE
+)
+View(map)
+par(mai = c(1,1,1,1), xaxs="i", yaxs="i")
+wholemap <- mapCountryData(map, nameColumnToPlot="Freq", catMethod = "pretty", colourPalette = "heat", oceanCol = "lightblue", borderCol = "black", missingCountryCol = "grey")
+
+# 4. Returning to the whole data set, convert some of the fields into factor variables and then use Association Rules Mining to see if there are patterns of attributes that connect type types of visitors that cancel their reservations. 
+# a. Remember that you can't use the dataframe as input to apriori() - you will first have to coerce it to the transactions class, just like you did with the Titanicdata.
+Canceled <- resort[resort$PreviousCancellations != 0,] # Create a dataset contains customers who have cancelation history before
+CanceledX <- as(Canceled,"transactions") # Coerce data to transaction class for analysis
+itemFrequency(CanceledX)
+#itemFrequencyPlot(CanceledX)
+inspect(CanceledX[1:10]) # Check data format and correctness
+rules1 <- apriori(CanceledX, 
+                  parameter=list(supp=0.005, conf=0.3), 
+                  control=list(verbose=F),
+                  appearance=list(default="lhs",rhs=("ReservationStatus=Canceled"))) #Generate the first rule based on canceled status
+inspect(rules1)
+rules2 <- apriori(CanceledX, 
+                  parameter=list(supp=0.005, conf=0.3), 
+                  control=list(verbose=F),
+                  appearance=list(default="lhs",rhs=("IsCanceled=1")))
+inspect(rules2)
+
+
+# 5. Generate several linear models to predict ADR and Cancelation Rates by week.
+# a. Try multiple attributes 
+# City:
+# Create weekly average ADR and calculate cancelation rates in each week and show in weekly view:
+city$weekNumber <- week(city$ReservationStatusDate)
+# Create a new variable indicating the year in integer part and demical part:
+city$weekNumber <- year(city$ReservationStatusDate) +  week(city$ReservationStatusDate) / 100
+cancelRates1 <- data.frame(table(unlist(city$weekNumber)))
+cancelRates1$yearWeek <- cancelRates1$Var1
+cancelRates1 <- cancelRates1[,-1]
+View(cancelRates1)
+
+cancelRates2 <- aggregate(x = city$IsCanceled, by= list(city$weekNumber), FUN = mean)
+# Group IsCanceled and weekNumber into a dataframe to show the average canceled rate in each week
+View(cancelRates2)
+cancelRates2$cancelRateThisWeek <- cancelRates2$x
+cancelRates2 <- cancelRates2[,-2]
+# Rename the column
+
+cancelRates3 <- aggregate(x = city$ADR, by= list(city$weekNumber), FUN = mean)
+# Group ADR and weekNumber into a dataframe to show the average ADR in each week
+View(cancelRates3)
+cancelRates3$ADRThisWeek <- cancelRates3$x
+# Rename the column
+cancelRates3 <- cancelRates3[,-2]
+cancelRates23 <- merge(cancelRates2, cancelRates3, by.x = "Group.1", by.y="Group.1")
+View(cancelRates23)
+cityCancelRates <- merge(cancelRates1, cancelRates23, by.x = "yearWeek", by.y="Group.1")
+View(cityCancelRates)
+# Merge all data frames into one.
+rm(cancelRates1)
+rm(cancelRates2)
+rm(cancelRates3)
+rm(cancelRates23)
+# Remove useless data frames
+summary(cityCancelRates)
+# Create a linear model plot:
+ggplot(data=cityCancelRates) + aes(x=ADRThisWeek, y=cancelRateThisWeek) + geom_point() + 
+  geom_smooth(method="lm", se=FALSE)
+ggplot(data=cityCancelRates) + aes(x=ADRThisWeek, y=cancelRateThisWeek) + geom_point() + 
+  geom_smooth(method="lm", se=TRUE)
+lm1 <- lm(formula = cancelRateThisWeek ~ ADRThisWeek, data = cityCancelRates)
+lm1
+summary(lm1)
+# Predict cancel rate at ADR = 100
+predADR <- data.frame(ADRThisWeek = 100)
+predADR
+summary(predADR)
+predict(lm1, predADR)
+
+# Resort:
+# The same process:
+resort$weekNumber <- week(resort$ReservationStatusDate)
+resort$weekNumber <- year(resort$ReservationStatusDate) +  week(resort$ReservationStatusDate) / 100
+cancelRates1 <- data.frame(table(unlist(resort$weekNumber)))
+cancelRates1$yearWeek <- cancelRates1$Var1
+cancelRates1 <- cancelRates1[,-1]
+View(cancelRates1)
+cancelRates2 <- aggregate(x = resort$IsCanceled, by= list(resort$weekNumber), FUN = mean)
+View(cancelRates2)
+cancelRates2$cancelRateThisWeek <- cancelRates2$x
+cancelRates2 <- cancelRates2[,-2]
+cancelRates3 <- aggregate(x = resort$ADR, by= list(resort$weekNumber), FUN = mean)
+View(cancelRates3)
+cancelRates3$ADRThisWeek <- cancelRates3$x
+cancelRates3 <- cancelRates3[,-2]
+cancelRates23 <- merge(cancelRates2, cancelRates3, by.x = "Group.1", by.y="Group.1")
+View(cancelRates23)
+resortCancelRates <- merge(cancelRates1, cancelRates23, by.x = "yearWeek", by.y="Group.1")
+View(resortCancelRates)
+rm(cancelRates1)
+rm(cancelRates2)
+rm(cancelRates23)
+summary(resortCancelRates)
+
+ggplot(data=resortCancelRates) + aes(x=ADRThisWeek, y=cancelRateThisWeek) + geom_point() + 
+  geom_smooth(method="lm", se=FALSE)
+ggplot(data=resortCancelRates) + aes(x=ADRThisWeek, y=cancelRateThisWeek) + geom_point() + 
+  geom_smooth(method="lm", se=TRUE)
+
+lm2 <- lm(formula = cancelRateThisWeek ~ ADRThisWeek, data = resortCancelRates)
+lm2
+summary(lm2)
+predADR <- data.frame(ADRThisWeek = 150)
+predADR
+summary(predADR)
+predict(lm2, predADR)
+# The linear model in city data set works way better than the one in resort data set.
+
+
+# 6. Generate several SVM models to predict who is a likely to cancel 
+# a. Make sure you use the variable "IsCanceled" as your target. 
+# b. Evaluate the accuracy of your models (i.e., using train and test datasets)
+# c. Make sure your presentation only discusses the best predictors!
+trainList <- createDataPartition(y=resort$IsCanceled,p=.40,list=FALSE)
+table(resort$IsCanceled) #Create trainSet for svmM
+trainSet <- resort[trainList,]
+View(trainSet)
+testSet <- resort[-trainList,] #Create testSet for svmM
+boxplot(ADR ~ IsCanceled, data=trainSet) #boxplot of canceled customers relate to ADR
+boxplot(LeadTime ~ IsCanceled, data=trainSet) #boxplot of canceled customers relate to LeadTime
+svmM <- ksvm(IsCanceled ~., data=trainSet, C=5, cross=3, prob.model=T) # Create SVM model to predict customers tend to cancel
+svmM
+predOut <- predict(svmM, newdata=testSet, type="response")
